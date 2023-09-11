@@ -1,0 +1,72 @@
+---
+title: "FNL cars"
+author: "Sai mitra"
+date: "2023-09-09"
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+``` 
+## downloded data set 
+https://www.kaggle.com/datasets/lepchenkov/usedcarscatalog
+
+```{r} 
+
+cars <- read.csv("cars.csv", nrow = 10, header = TRUE, sep = ",")
+  
+head(cars)
+```
+
+
+# descriptive statistics for quantitative variables
+```{r}
+summary(cars$engine_has_gas)
+summary(cars$year_produced)
+
+```
+
+# descriptive statistics for categorical variables
+```{r}
+table(cars$transmission, cars$price_usd)
+
+
+```
+# Transformation    
+
+```{r}
+kilometers = log(cars$odometer_value/0.621371)
+log_price = log(cars$price_usd)
+head(kilometers)
+summary(kilometers)
+summary(log_price)
+
+    
+```
+
+```{r}
+kilometers = log(cars$odometer_value/0.621371)
+
+log_price = log(cars$price_usd)
+
+plot(x = kilometers, y = log_price,
+     xlab = "Kilometers",
+     ylab = "Price",
+     xlim = c(9, 15),
+     ylim = c(7, 10),
+     main= "Cars"
+
+)
+```
+
+```{r}
+x=table(cars$model_name)
+barplot.default(x,names.arg =c("silver", "red", "grey" ,"brown"),
+                xlab = "kilomters", ylab = "price",
+                  col="red" , main="Barplot"
+)
+```
+              
