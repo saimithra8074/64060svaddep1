@@ -1,0 +1,268 @@
+---
+title: "Assignment 3 Accidents"
+author: "sai mithra"
+date: "2023-10-15"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+**QUESTION1**
+
+##Our goal here is to predict whether an accident just reported will involve an injury (MAX_SEV_IR = 1 or 2) or will not (MAX_SEV_IR = 0). 
+##For this purpose, create a dummy variable called INJURY that takes the value “yes” if MAX_SEV_IR = 1 or 2, and otherwise “no.”
+
+```{r}
+#load the complete data set and install/load required packages.
+
+library(readr)
+library(dplyr)
+
+```
+
+```{r}
+
+library(caret)
+library(e1071)
+
+```
+
+```{r}
+Accidents_Data<- read.csv("C:\\Users\\saimi\\Downloads\\accidentsFull.csv")
+
+View(Accidents_Data)
+
+```
+
+```{r}
+
+#create and insert a dummy variable called injury in the data.
+
+Accidents_Data$INJURY <- ifelse(Accidents_Data$MAX_SEV_IR>0, "yes", "no")
+
+for (i in 1:dim(Accidents_Data)[2]) {
+ if (is.character(Accidents_Data[, i])) {
+ Accidents_Data[, i] <- as.factor(Accidents_Data[, i])
+ }
+}
+head(Accidents_Data, n=24)
+
+```
+
+**QUESTION-1**
+
+#Using the information in this dataset, if an accident has just been reported and no further information is available, what should the prediction be? (INJURY = Yes or No?) Why?
+
+```{r}
+#CREATING A TABLE BASED ON INJURY.
+
+Injury_Table <- table(Accidents_Data$INJURY)
+show(Injury_Table)
+
+```
+```{r}
+#CALUCATING THE PROBABILITY OF INJURY 
+
+Injury_Probablilty = 
+scales::percent(Injury_Table["yes"]/(Injury_Table["yes"]+Injury_Table["no"]),
+0.01)
+Injury_Probablilty
+
+```
+**QUESTION-2**
+
+#Select the first 24 records in the dataset and look only at the response (INJURY) and the two predictors WEATHER_R and TRAF_CON_R. 
+
+```{r}
+#make a new subset with just the necessary records in it.
+
+Accidents_Data24 <- Accidents_Data[1:24, c('INJURY','WEATHER_R','TRAF_CON_R')] 
+Accidents_Data24
+
+```
+
+#Create a pivot table that examines INJURY as a function of the two predictors for these 24 records. Use all three variables in the pivot table as rows/columns.
+
+```{r}
+dtpvt1 <- ftable(Accidents_Data24)
+dtpvt2 <- ftable(Accidents_Data24 [,-1])
+
+dtpvt1
+dtpvt2
+
+```
+**Question-2(1)**
+
+#Compute the exact Bayes conditional probabilities of an injury (INJURY = Yes) given the six possible combinations of the predictors.
+
+```{r}
+
+#QUESTION4
+#COMPUTING THE BAYES CONDITIONAL PROBABLITIES OF AN INJURY (INJURY = Yes) GIVEN THE SIX POSSIBILE COMBINATIONS OF THE PREDITCTORS.
+
+# Injury = yes
+
+Prob1 = dtpvt1[3,1] / dtpvt2[1,1] # Injury, Weather=1 and Traf=0
+Prob2 = dtpvt1[4,1] / dtpvt2[2,1] # Injury, Weather=2, Traf=0
+Prob3 = dtpvt1[3,2] / dtpvt2[1,2] # Injury, W=1, T=1
+Prob4 = dtpvt1[4,2] / dtpvt2[2,2] # I, W=2,T=1
+Prob5 = dtpvt1[3,3] / dtpvt2[1,3] # I, W=1,T=2
+Prob6 = dtpvt1[4,3]/ dtpvt2[2,3] #I,W=2,T=2
+print(c(Prob1,Prob2,Prob3,Prob4,Prob5,Prob6))
+
+# Injury = no
+
+N1 = dtpvt1[1,1] / dtpvt2[1,1] # Weather=1 and Traf=0
+N2 = dtpvt1[2,1] / dtpvt2[2,1] # Weather=2, Traf=0
+N3 = dtpvt1[1,2] / dtpvt2[1,2] # W=1, T=1
+N4 = dtpvt1[2,2] / dtpvt2[2,2] # W=2,T=1
+N5 = dtpvt1[1,3] / dtpvt2[1,3] # W=1,T=2
+N6 = dtpvt1[2,3] / dtpvt2[2,3] # W=2,T=2
+print(c(N1,N2,N3,N4,N5,N6))
+
+
+```
+
+**QUESTION-2(2)**
+
+#CLASSIFYING THE 24 ACCIDENTS USING THESES PROBABLITIES AND CUTOFF OF 0.5
+#ADDING PROBABILITY RESULTS TO THE SUBSET 
+
+```{r}
+prob.inj <- rep(0,24)
+for (i in 1:24) {
+ print(c(Accidents_Data24$WEATHER_R[i],Accidents_Data24$TRAF_CON_R[i]))
+ if (Accidents_Data24$WEATHER_R[i] == "1") {
+ if (Accidents_Data24$TRAF_CON_R[i]=="0"){
+ prob.inj[i] = Prob1
+ }
+ else if (Accidents_Data24$TRAF_CON_R[i]=="1") {
+ prob.inj[i] = Prob3
+ }
+ else if (Accidents_Data24$TRAF_CON_R[i]=="2") {
+ prob.inj[i] = Prob5
+ }
+ }
+ else {
+ if (Accidents_Data24$TRAF_CON_R[i]=="0"){
+ prob.inj[i] = Prob2
+ }
+ else if (Accidents_Data24$TRAF_CON_R[i]=="1") {
+ prob.inj[i] = Prob4
+ }
+ else if (Accidents_Data24$TRAF_CON_R[i]=="2") {
+ prob.inj[i] = Prob6
+ }
+ }
+}
+
+```
+```{r}
+Accidents_Data24$prob.inj <- prob.inj
+Accidents_Data24$pred.prob <- ifelse(Accidents_Data24$prob.inj>0.5, "yes", "no")
+table(Accidents_Data24$pred.prob)
+```
+
+**QUESTION-2(3)**
+
+#COMPUTING MANUALLY THE NAIVE BAYES CONDITIONAL PROBABILITY OF AN INJURY GIVEN THE WEATHER_R =1 AND TRAF_CON_R =1.
+
+#The Naive Bayes conditional probability is computed using the Naive Bayes formula as follows:
+#P(INJURY = Yes | WEATHER_R = 1 and TRAF_CON_R = 1) = (P(INJURY = Yes | WEATHER_R = 1) * P(INJURY = Yes | TRAF_CON_R = 1) * P(INJURY = Yes)) / (P(WEATHER_R = 1) * P(TRAF_CON_R = 1))
+
+```{r}
+
+Manual_NB_W1_T1 <- Prob3
+cat("Manual Naive Bayes Conditional Probability (Injury = Yes | Weather_R = 
+1, TRAF_CON_R = 1):", Manual_NB_W1_T1)
+
+```
+**QUESTION-3(4)**
+
+#RUNNING A NAIVE BAYES CLASSIFIER ON THE 24 RECORDS AND TWO PREDICTORS.
+#NOW,WE HAVE TO CHECK THE MODEL OUTPUT TO OBTAIN PROBABILITIES AND CLASSIFCATIONS FOR ALL 24 RECORDS.
+##AND THEN, WE ARE COMPARING TO BAYES CLASSIFCATION TO SEE IF THE RESULTING CLASSIFICATIONS ARE EQUIVALENT OR NOT.
+
+```{r}
+library(e1071)
+
+NB<-naiveBayes(INJURY ~ ., data = Accidents_Data24)
+
+NBT <- predict(NB, newdata = Accidents_Data24,type = "raw")
+
+Accidents_Data24$nbpred.prob <- NBT[,2] # Transfer the "Yes" nb prediction
+library(caret)
+
+NB2 <- train(INJURY ~ TRAF_CON_R + WEATHER_R, 
+ data = Accidents_Data24, method = "nb")
+
+predict(NB2, newdata = Accidents_Data24[,c("INJURY", "WEATHER_R", "TRAF_CON_R")])
+
+predict(NB2, newdata = Accidents_Data24[,c("INJURY", "WEATHER_R", "TRAF_CON_R")],
+ type = "raw")
+
+
+```
+
+
+**QUESTION-3**
+
+#Let us now return to the entire dataset. Partition the data into training (60%) and validation (40%). 
+
+```{r}
+
+#Splitting the data into training (60%) and validation (40%)
+
+set.seed(123)
+TrainIndex <- createDataPartition(Accidents_Data$INJURY, p = 0.6, list =
+FALSE)
+Train_Data <- Accidents_Data[TrainIndex, ]
+Val_Data <- Accidents_Data[-TrainIndex, ]
+
+```
+
+**QUESTION-3(1)**
+
+Run a naive Bayes classifier on the complete training set with the relevant predictors (and INJURY as the response). Note that all predictors are categorical. Show the confusion matrix.
+
+```{r}
+
+#Creating a naive bayes model with the relavant predictors
+nb <- naiveBayes(INJURY ~ WEATHER_R + TRAF_CON_R, data = Train_Data)
+#Predicting on the validation set
+Val_Pred <-predict(nb, newdata = Val_Data)
+
+#Converting val_pred into a character vector
+Val_Pred <- as.character(Val_Pred)
+
+#Converting val_data$Injury to a character vector
+Val_Data$INJURY <- as.character(Val_Data$INJURY)
+
+#Creating a factor with matching levels
+Val_Pred <- factor(Val_Pred, levels = c("No", "Yes"))
+Val_Data$INJURY <- factor(Val_Data$INJURY, levels = c("No", "Yes"))
+
+#Creating a confusion matrix
+Confusion.Matrix <- confusionMatrix(Val_Pred, Val_Data$INJURY)
+print(Confusion.Matrix)
+
+```
+
+**QUESTION-3(2)**
+
+```{r}
+#OVERALL ERROR OF THE VALIDATION SET 
+
+Overall_Error <- 1 - Confusion.Matrix$overall["Accuracy"]
+cat("overall error of the validation set:", Overall_Error, "\n")
+
+
+```
+
+
+
